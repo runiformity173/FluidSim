@@ -1,0 +1,2 @@
+const helpText = ``;
+window.portfolioText = ``;
