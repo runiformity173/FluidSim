@@ -5,12 +5,13 @@ const ctx = canvas.getContext("2d");
 
 
 function displayGrid() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     for (let i = 0; i < 128; i++) { // down
         for (let j = 0; j < 128; j++) { // across
-            const [vy,vx] = getVelocityAtPosition(GRID_HEIGHT/128*i+0.5, GRID_WIDTH/128*j+0.5);
+            const [vx,vy] = getVelocityAtPosition(1+(GRID_HEIGHT-2)/128*i, 1+(GRID_WIDTH-2)/128*j);
             ctx.beginPath();
-            ctx.fillStyle = `rgb(${vy*100}, ${vx*100}, 100)`;
-            ctx.arc(i*4, j*4, 1.5, 0, 2 * Math.PI);
+            ctx.fillStyle = `hsl(${Math.atan2(vy,vx)/Math.PI*180}deg ${Math.hypot(vx,vy)*20} 50)`;
+            ctx.arc(j*4, i*4, 1.5, 0, 2 * Math.PI);
             ctx.fill();
         }
     }
