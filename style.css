@@ -1,0 +1,12 @@
+body {
+    height: 100%;
+    width: 100%;
+}
+
+#output {
+    position: absolute;
+    left:0;
+    top:0;
+    height: min(100vh, 100vw);
+    width: min(100vh, 100vw);
+}
