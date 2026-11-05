@@ -1,5 +1,5 @@
 function step() {
-    stepFluid(0.1);
+    fluid.stepFluid(0.2);
     displayGrid();
 }
 setInterval(step, 200);
