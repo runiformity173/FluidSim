@@ -1,5 +1,9 @@
+let STOP = false;
+
 function step() {
-    fluid.stepFluid(0.2);
+    if (STOP) return;
+    fluid.stepFluid(0.1);
     displayGrid();
+    requestAnimationFrame(step);
 }
-setInterval(step, 200);
+step();
