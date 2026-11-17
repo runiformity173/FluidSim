@@ -1,9 +1,12 @@
 let STOP = false;
 
+const fluid = new EulerianSimulation(GRID_WIDTH, GRID_HEIGHT, GRAVITY_ACCELERATION);
+fluid.vortexSheddingSetup();
+setObstacle(40,50,OBSTACLE,true,0.1);
+
 function step() {
     if (STOP) return;
     fluid.stepFluid(0.1);
     displayGrid();
     requestAnimationFrame(step);
 }
-step();

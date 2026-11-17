@@ -3,6 +3,11 @@ const GRID_HEIGHT = 100;
 const GRAVITY_ACCELERATION = 0.0; // 9.8;
 const INCOMPRESSIBILITY_ITERATIONS = 40;
 const OVERRELAXATION_COEFFICIENT = 1.2; // 1.5
+let OBSTACLE = {
+    r: 8,
+    x: 40,
+    y: 50,
+}
 class EulerianSimulation {
     constructor(w,h,g=0.0) {
         this.h = h;
@@ -56,13 +61,18 @@ class EulerianSimulation {
     }
     solveIncompressibility() {
         for (let iter = 0; iter < INCOMPRESSIBILITY_ITERATIONS; iter++) {
-            for (let col = 1; col < this.w-1; col++) {
-                for (let row = 1; row < this.h-1; row++) {
+            let totalDiv = 0;
+            const rev1 = iter % 2;
+            const rev2 = iter % 4 < 2;
+            for (let row = rev2?this.h-2:1; rev2 ? (row > 0) : (row < this.h-1); row += rev2?-1:1) {
+                for (let col = rev1?this.w-2:1; rev1 ? (col > 0) : (col < this.w-1); col += rev1?-1:1) {
+                    if (this.s[row*this.w+col] == 0.0) continue;
                     const up = this.down[(row-1)*this.w+col];
                     const down = this.down[row*this.w+col];
                     const left = this.right[row*this.w+col-1];
                     const right = this.right[row*this.w+col];
                     let divergence = up+left-right-down;
+                    totalDiv += Math.abs(divergence);
                     divergence *= OVERRELAXATION_COEFFICIENT;
                     let s = this.s[row*this.w+col]+this.s[(row-1)*this.w+col]+this.s[(row+1)*this.w+col]+this.s[row*this.w+col-1]+this.s[row*this.w+col+1]
                     if (s == 0) continue;
@@ -142,5 +152,36 @@ class EulerianSimulation {
     }
 }
 
-const fluid = new EulerianSimulation(GRID_WIDTH, GRID_HEIGHT, GRAVITY_ACCELERATION);
-fluid.vortexSheddingSetup();
+function setObstacle(x, y, obstacle, reset, dt) {
+    var vx = 0.0;
+    var vy = 0.0;
+    if (!reset) {
+        vx = (x - obstacle.x) / dt;
+        vy = (y - obstacle.y) / dt;
+    }
+
+    obstacle.x = x;
+    obstacle.y = y;
+    var r = obstacle.r;
+    var f = fluid;
+    var n = f.w;
+
+    for (var i = 1; i < f.h-2; i++) {
+        for (var j = 1; j < f.w-2; j++) {
+
+            f.s[i*n + j] = 1.0;
+
+            dx = (j + 0.5) - x;
+            dy = (i + 0.5) - y;
+
+            if (dx * dx + dy * dy < r * r) {
+                f.s[i*n + j] = 0.0;
+                f.smoke[i*n + j] = 0.0;
+                f.right[i*n + j] = vx;
+                f.right[i*n + j-1] = vx;
+                f.down[i*n + j] = vy;
+                f.down[(i-1)*n + j] = vy;
+            }
+        }
+    }
+}
