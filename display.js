@@ -4,7 +4,7 @@ canvas.height = 512;
 const ctx = canvas.getContext("2d");
 
 function displayGrid() {
-    const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    const imgData = ctx.createImageData(canvas.width,canvas.height);
     for (let i = 0; i < canvas.height; i++) { // down
         for (let j = 0; j < canvas.width; j++) { // across
             const smoke = 1-fluid.getSmokeAtPosition(1+(GRID_HEIGHT-2)/canvas.height*i+1, 1+(GRID_WIDTH-2)/canvas.width*j);
