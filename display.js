@@ -3,22 +3,35 @@ canvas.width = 512;
 canvas.height = 512;
 const ctx = canvas.getContext("2d");
 
+const buffer = document.createElement("canvas");
+buffer.width = GRID_WIDTH;
+buffer.height = GRID_HEIGHT;
+const bufferCtx = buffer.getContext("2d");
+const bufferImg = bufferCtx.createImageData(GRID_WIDTH, GRID_HEIGHT);
+
 function displayGrid() {
-    const imgData = ctx.createImageData(canvas.width,canvas.height);
-    for (let i = 0; i < canvas.height; i++) { // down
-        for (let j = 0; j < canvas.width; j++) { // across
-            const smoke = 1-fluid.getSmokeAtPosition(1+(GRID_HEIGHT-2)/canvas.height*i+1, 1+(GRID_WIDTH-2)/canvas.width*j);
-            const [r,g,b] = [smoke*255,smoke*255,smoke*255];
-            imgData.data[4*(i*canvas.width+j)] = r;
-            imgData.data[4*(i*canvas.width+j)+1] = g;
-            imgData.data[4*(i*canvas.width+j)+2] = b;
-            imgData.data[4*(i*canvas.width+j)+3] = 255;
+    const data = bufferImg.data;
+    const n = fluid.w;
+
+    for (let row = 0; row < GRID_HEIGHT; row++) {
+        for (let col = 0; col < GRID_WIDTH; col++) {
+            const v = (1 - fluid.smoke[row*n + col]) * 255;
+            const p = 4 * (row*GRID_WIDTH + col);
+            data[p] = v;
+            data[p+1] = v;
+            data[p+2] = v;
+            data[p+3] = 255;
         }
     }
-    ctx.putImageData(imgData,0,0);
+    bufferCtx.putImageData(bufferImg, 0, 0);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(buffer, 0, 0, canvas.width, canvas.height);
+
+    const scale = canvas.width / GRID_WIDTH;
     ctx.beginPath();
     ctx.fillStyle = `#000000`;
-    ctx.arc((OBSTACLE.x-1)/(GRID_WIDTH-2)*512, (OBSTACLE.y-1.5)/(GRID_HEIGHT-2)*512, OBSTACLE.r/(GRID_HEIGHT-2)*512, 0, 2 * Math.PI);
+    ctx.arc(OBSTACLE.x * scale, OBSTACLE.y * scale, OBSTACLE.r * scale, 0, 2 * Math.PI);
     ctx.fill();
 }
 displayGrid();

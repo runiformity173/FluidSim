@@ -2,9 +2,9 @@ const GRID_WIDTH = 100;
 const GRID_HEIGHT = 100;
 const GRAVITY_ACCELERATION = 0.0; // 9.8;
 const INCOMPRESSIBILITY_ITERATIONS = 40;
-const OVERRELAXATION_COEFFICIENT = 1.2; // 1.5
+const OVERRELAXATION_COEFFICIENT = 1.9;
 let OBSTACLE = {
-    r: 8,
+    r: 15,
     x: 40,
     y: 50,
 }
@@ -25,8 +25,10 @@ class EulerianSimulation {
         this.s.fill(1.0);
     }
     getVelocityAtPosition(y, x) {
-        const row = Math.max(1,Math.min(Math.floor(y),this.h-1));
-        const col = Math.max(1,Math.min(Math.floor(x),this.w-1));
+        y = Math.max(1, Math.min(y, this.h));
+        x = Math.max(1, Math.min(x, this.w));
+        const row = Math.min(Math.floor(y),this.h-1);
+        const col = Math.min(Math.floor(x),this.w-1);
         const up = this.down[(row-1)*this.w+col];
         const down = this.down[row*this.w+col];
         const left = this.right[row*this.w+col-1];
@@ -67,31 +69,35 @@ class EulerianSimulation {
             for (let row = rev2?this.h-2:1; rev2 ? (row > 0) : (row < this.h-1); row += rev2?-1:1) {
                 for (let col = rev1?this.w-2:1; rev1 ? (col > 0) : (col < this.w-1); col += rev1?-1:1) {
                     if (this.s[row*this.w+col] == 0.0) continue;
+                    const sy0 = this.s[(row-1)*this.w+col];
+                    const sy1 = this.s[(row+1)*this.w+col];
+                    const sx0 = this.s[row*this.w+col-1];
+                    const sx1 = this.s[row*this.w+col+1];
                     const up = this.down[(row-1)*this.w+col];
                     const down = this.down[row*this.w+col];
                     const left = this.right[row*this.w+col-1];
                     const right = this.right[row*this.w+col];
                     let divergence = up+left-right-down;
                     totalDiv += Math.abs(divergence);
-                    divergence *= OVERRELAXATION_COEFFICIENT;
-                    let s = this.s[row*this.w+col]+this.s[(row-1)*this.w+col]+this.s[(row+1)*this.w+col]+this.s[row*this.w+col-1]+this.s[row*this.w+col+1]
+                    const s = sx0+sx1+sy0+sy1;
                     if (s == 0) continue;
-                    this.down[(row-1)*this.w+col] -= divergence/s;
-                    this.down[row*this.w+col] += divergence/s;
-                    this.right[row*this.w+col-1] -= divergence/s;
-                    this.right[row*this.w+col] += divergence/s;
+                    const p = divergence * OVERRELAXATION_COEFFICIENT / s;
+                    this.down[(row-1)*this.w+col] -= p * sy0;
+                    this.down[row*this.w+col] += p * sy1;
+                    this.right[row*this.w+col-1] -= p * sx0;
+                    this.right[row*this.w+col] += p * sx1;
                 }
             }
         }
     }
     extrapolate() {
-        for (let col = 0; col < this.w; col++) {
-            this.down[col] = this.down[this.w+col];
-            this.down[this.w*(this.h-1)+col] = this.down[this.w*(this.h-2)+col];
-        }
         for (let row = 0; row < this.h; row++) {
-            this.right[row*this.w] = this.right[row*this.w+1];
-            this.right[(row+1)*this.w-1] = this.right[(row+1)*this.w-2];
+            this.down[row*this.w] = this.down[row*this.w+1];
+            this.down[row*this.w+this.w-1] = this.down[row*this.w+this.w-2];
+        }
+        for (let col = 0; col < this.w; col++) {
+            this.right[col] = this.right[this.w+col];
+            this.right[this.w*(this.h-1)+col] = this.right[this.w*(this.h-2)+col];
         }
     }
     vortexSheddingSetup() {
@@ -102,7 +108,7 @@ class EulerianSimulation {
                 if (i == 0 || j == 0 || i == this.h-1) s = 0.0;
                 this.s[i*this.w + j] = s;
 
-                if (j == 1) this.right[i*this.w + j] = v;
+                if (j == 0) this.right[i*this.w + j] = v;
             }
         }
 
@@ -118,10 +124,10 @@ class EulerianSimulation {
     }
     stepFluid(dt) {
         // Outside forces
-        // loop through vertical velocities
-        for (let row = 0; row <= this.h; row++) {
-            for (let col = 0; col < this.w; col++) {
-                this.down[row*this.w+col] += this.g*dt;
+        for (let col = 1; col < this.w; col++) {
+            for (let row = 0; row < this.h-1; row++) {
+                if (this.s[row*this.w+col] != 0.0 && this.s[(row+1)*this.w+col] != 0.0)
+                    this.down[row*this.w+col] += this.g*dt;
             }
         }
         // Incompressibility
@@ -134,8 +140,8 @@ class EulerianSimulation {
         // Loop through velocities
         for (let row = 1; row < this.h-1; row++) {
             for (let col = 1; col < this.w-1; col++) {
-                if (this.s[row*this.w+col] != 0.0 && this.s[(row-1)*this.w+col] != 0.0 && row < this.h-1) this.newDown[this.w*row+col] = this.calculateAdvection(row+1, col+0.5, dt)[1];
-                if (this.s[row*this.w+col] != 0.0 && this.s[row*this.w+col-1] != 0.0 && col < this.w-1) this.newRight[this.w*row+col] = this.calculateAdvection(row+0.5, col+1, dt)[0];
+                if (this.s[row*this.w+col] != 0.0 && this.s[(row+1)*this.w+col] != 0.0) this.newDown[this.w*row+col] = this.calculateAdvection(row+1, col+0.5, dt)[1];
+                if (this.s[row*this.w+col] != 0.0 && this.s[row*this.w+col+1] != 0.0) this.newRight[this.w*row+col] = this.calculateAdvection(row+0.5, col+1, dt)[0];
             }
         }
         this.down.set(this.newDown);
